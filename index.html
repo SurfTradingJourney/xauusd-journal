@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f0f0f">
+<title>XAU/USD Trading Journal</title>
+<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;XAU/USD Journal&quot;,&quot;short_name&quot;:&quot;Gold Journal&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#0f0f0f&quot;,&quot;theme_color&quot;:&quot;#0f0f0f&quot;,&quot;start_url&quot;:&quot;/&quot;}">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #181818;
+    --surface2: #222222;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #f0f0f0;
+    --text2: #888;
+    --text3: #555;
+    --accent: #d4a847;
+    --accent2: #b8902e;
+    --green: #4caf6e;
+    --red: #e05555;
+    --blue: #5b9cf6;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; min-height: 100vh; }
+  
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 50; }
+  .header-logo { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .header-title { font-size: 15px; font-weight: 600; }
+  .header-sub { font-size: 11px; color: var(--text2); font-family: monospace; }
+  .header-badge { margin-left: auto; font-size: 11px; color: var(--text2); background: var(--surface2); padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border); }
+  
+  .drive-banner { background: linear-gradient(135deg, #1a2a1a, #162216); border-bottom: 1px solid rgba(76,175,110,0.2); padding: 8px 20px; display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .dot-green { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .drive-banner a { color: var(--green); text-decoration: none; margin-left: auto; }
+
+  .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .tab { padding: 12px 16px; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .content { padding: 20px; max-width: 900px; margin: 0 auto; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .section-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); margin: 20px 0 10px; }
+  
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+  @media(max-width:600px) { .grid2,.grid3,.grid4 { grid-template-columns: 1fr 1fr; } }
+  @media(max-width:400px) { .grid2,.grid3,.grid4 { grid-template-columns: 1fr; } }
+
+  .field label { font-size: 11px; color: var(--text2); display: block; margin-bottom: 5px; }
+  input, select, textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text); font-size: 13px; padding: 9px 11px; outline: none; transition: border 0.15s;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: var(--surface2); }
+  textarea { resize: vertical; min-height: 70px; }
+
+  .layer-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px; margin-bottom: 8px; }
+  .layer-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .layer-num { font-size: 12px; font-weight: 600; color: var(--text2); }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .b-sell { background: rgba(224,85,85,0.15); color: var(--red); border: 1px solid rgba(224,85,85,0.25); }
+  .b-buy { background: rgba(76,175,110,0.15); color: var(--green); border: 1px solid rgba(76,175,110,0.25); }
+  .b-open { background: rgba(212,168,71,0.15); color: var(--accent); border: 1px solid rgba(212,168,71,0.25); }
+  .b-closed { background: rgba(76,175,110,0.12); color: var(--green); border: 1px solid rgba(76,175,110,0.2); }
+  .b-partial { background: rgba(91,156,246,0.12); color: var(--blue); border: 1px solid rgba(91,156,246,0.2); }
+  .b-win { background: rgba(76,175,110,0.15); color: var(--green); }
+  .b-loss { background: rgba(224,85,85,0.15); color: var(--red); }
+  .b-be { background: rgba(212,168,71,0.15); color: var(--accent); }
+
+  .btn { padding: 9px 18px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border2); background: var(--surface2); color: var(--text); transition: all 0.15s; font-family: inherit; }
+  .btn:hover { background: #2a2a2a; border-color: rgba(255,255,255,0.25); }
+  .btn-primary { background: var(--accent); color: #0f0f0f; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+  .btn-success { background: rgba(76,175,110,0.15); color: var(--green); border-color: rgba(76,175,110,0.3); }
+  .btn-success:hover { background: rgba(76,175,110,0.25); }
+  .btn-danger { color: var(--red); border-color: rgba(224,85,85,0.3); }
+  .btn-danger:hover { background: rgba(224,85,85,0.1); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-row { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; align-items: center; }
+
+  .mood-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mood-btn { padding: 7px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); color: var(--text2); font-size: 13px; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+  .mood-btn:hover { border-color: var(--border2); color: var(--text); }
+  .mood-btn.selected { border-color: var(--accent); color: var(--accent); background: rgba(212,168,71,0.1); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  .trade-row { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 6px; cursor: pointer; transition: border-color 0.15s; }
+  .trade-row:hover { border-color: var(--border2); }
+  .trade-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .trade-pair { font-size: 13px; font-weight: 600; }
+  .trade-date { font-size: 11px; color: var(--text2); margin-left: auto; }
+  .trade-meta { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+  .meta-item { font-size: 11px; color: var(--text2); }
+  .meta-sep { color: var(--text3); font-size: 11px; }
+  .source-tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; background: rgba(91,156,246,0.12); color: var(--blue); border: 1px solid rgba(91,156,246,0.2); }
+  .source-tag.self { background: rgba(212,168,71,0.12); color: var(--accent); border-color: rgba(212,168,71,0.2); }
+
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+  .stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin-bottom: 6px; }
+  .stat-val { font-size: 24px; font-weight: 600; }
+  .stat-sub { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .positive { color: var(--green); }
+  .negative { color: var(--red); }
+
+  .bar-track { height: 5px; background: var(--surface2); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; background: var(--blue); }
+
+  .info-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .info-row:last-child { border-bottom: none; }
+
+  .drive-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; }
+  .drive-card-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .drive-card p { font-size: 12px; color: var(--text2); margin-bottom: 12px; line-height: 1.5; }
+
+  .progress-bar { height: 3px; background: var(--surface2); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--blue); border-radius: 2px; transition: width 0.3s; }
+
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 11px; margin: 3px; color: var(--text2); }
+
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .filter-bar select { width: auto; font-size: 12px; padding: 6px 10px; }
+
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--text2); font-size: 13px; }
+
+  .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border2); color: var(--text); padding: 11px 20px; border-radius: var(--radius); font-size: 13px; z-index: 200; display: none; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
+  .save-msg { margin-top: 10px; font-size: 12px; display: none; }
+
+  .tp-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  @media(max-width:500px) { .tp-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">◆</div>
+  <div>
+    <div class="header-title">Trading Journal</div>
+    <div class="header-sub">XAU/USD · IC Markets</div>
+  </div>
+  <div class="header-badge" id="total-badge">0 trades</div>
+</div>
+
+<div class="drive-banner">
+  <div class="dot-green"></div>
+  <span style="color:#4caf6e; font-weight:500;">Drive Connected</span>
+  <span style="color:#555;">— XAU/USD Trading Journal folder ready</span>
+  <a href="https://drive.google.com/drive/folders/1UxFwMC07M-7zN2p2IVsrR-BtWTo2G-DY" target="_blank">Open folder →</a>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('log')">Log Trade</button>
+  <button class="tab" onclick="switchTab('history')">History</button>
+  <button class="tab" onclick="switchTab('stats')">Stats</button>
+  <button class="tab" onclick="switchTab('storage')">Drive & Export</button>
+  <button class="tab" onclick="switchTab('mobile')">Mobile</button>
+</div>
+
+<div class="content">
+
+  <!-- LOG TRADE -->
+  <div id="panel-log" class="panel active">
+    <div class="grid2">
+      <div class="field"><label>Date & Time</label><input type="datetime-local" id="f-datetime"></div>
+      <div class="field"><label>Direction</label>
+        <select id="f-direction">
+          <option value="SELL">SELL XAU/USD</option>
+          <option value="BUY">BUY XAU/USD</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label">Signal Source</div>
+    <div class="grid3">
+      <div class="field"><label>Primary Source</label>
+        <select id="f-source">
+          <option value="">Select source...</option>
+          <option value="GR Live">GR (Live/Zones Map) — Golden Results</option>
+          <option value="BILLS Live">BILLS (Live) — Bills Trading</option>
+          <option value="GSN TG">GSN (TG) — Gold Scalper Ninja</option>
+          <option value="Ben TG">Ben (TG) — Ben, Gold Trader</option>
+          <option value="STS Live">STS (Live/TG) — Snipe Trading Pro</option>
+          <option value="GTN Live">GTN (TG/Live) — Gold Trading Nexus</option>
+          <option value="OrientFX">OrientFX (Zones Map/TG)</option>
+          <option value="Srosh">Srosh (Zones Map/TG)</option>
+          <option value="Zuwin">Zuwin Capital (TG/Live)</option>
+          <option value="Self">Self-assessment</option>
+        </select>
+      </div>
+      <div class="field"><label>Signal Confidence</label>
+        <select id="f-confidence">
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+      </div>
+      <div class="field"><label>Session</label>
+        <select id="f-session">
+          <option value="London">London</option>
+          <option value="New York">New York</option>
+          <option value="Asian">Asian</option>
+          <option value="Overlap">London/NY Overlap</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label">Entry Range & Stop Loss</div>
+    <div class="grid3">
+      <div class="field"><label>Entry Range Low</label><input type="number" id="f-range-low" placeholder="e.g. 4715" step="0.01"></div>
+      <div class="field"><label>Entry Range High</label><input type="number" id="f-range-high" placeholder="e.g. 4721" step="0.01"></div>
+      <div class="field"><label>Stop Loss</label><input type="number" id="f-sl" placeholder="e.g. 4724" step="0.01"></div>
+    </div>
+
+    <div class="section-label">Take Profit Levels</div>
+    <div class="tp-grid">
+      <div class="field"><label>TP1 (pips)</label><input type="number" id="f-tp1" placeholder="e.g. 40"></div>
+      <div class="field"><label>TP2 (pips)</label><input type="number" id="f-tp2" placeholder="e.g. 90"></div>
+      <div class="field"><label>TP3</label>
+        <select id="f-tp3-type">
+          <option value="open">Open (trailing)</option>
+          <option value="custom">Custom (pips)</option>
+          <option value="none">None</option>
+        </select>
+      </div>
+    </div>
+    <div id="f-tp3-wrap" style="display:none; margin-top:10px; max-width:180px;">
+      <div class="field"><label>TP3 Custom (pips)</label><input type="number" id="f-tp3" placeholder="e.g. 150"></div>
+    </div>
+
+    <div class="section-label">Entry Layers</div>
+    <div id="layers-container"></div>
+    <button class="btn btn-sm" onclick="addLayer()" style="margin-top:6px;">+ Add Layer</button>
+
+    <div class="divider"></div>
+    <div class="section-label">Market Context</div>
+    <div class="grid2">
+      <div class="field"><label>Market Structure</label>
+        <select id="f-structure">
+          <option value="">Select...</option>
+          <option value="Trend continuation">Trend continuation</option>
+          <option value="Range / consolidation">Range / consolidation</option>
+          <option value="Breakout">Breakout</option>
+          <option value="Reversal">Reversal</option>
+          <option value="News-driven">News-driven</option>
+        </select>
+      </div>
+      <div class="field"><label>Timeframe basis</label>
+        <select id="f-tf">
+          <option value="">Select...</option>
+          <option value="M2">M2</option>
+          <option value="M3">M3</option>
+          <option value="M5">M5</option>
+          <option value="M10">M10</option>
+          <option value="M15">M15</option>
+          <option value="M20">M20</option>
+          <option value="M30">M30</option>
+          <option value="H1">H1</option>
+          <option value="H2">H2</option>
+          <option value="H4">H4</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:16px;">Mindset at Entry</div>
+    <div class="mood-row">
+      <button class="mood-btn" onclick="selectMood(this,'Focused')">Focused</button>
+      <button class="mood-btn" onclick="selectMood(this,'Calm')">Calm</button>
+      <button class="mood-btn" onclick="selectMood(this,'Impulsive')">Impulsive</button>
+      <button class="mood-btn" onclick="selectMood(this,'Revenge')">Revenge</button>
+      <button class="mood-btn" onclick="selectMood(this,'FOMO')">FOMO</button>
+      <button class="mood-btn" onclick="selectMood(this,'Tired')">Tired</button>
+    </div>
+
+    <div class="section-label" style="margin-top:16px;">Circumstances / Trigger Notes</div>
+    <textarea id="f-notes" placeholder="What triggered this trade? Key levels, news, pattern, confluence factors, why this setup stood out..."></textarea>
+
+    <div class="section-label" style="margin-top:16px;">Trade Status</div>
+    <select id="f-status" style="max-width:280px;">
+      <option value="open">Open</option>
+      <option value="partial">Partial (some TPs hit)</option>
+      <option value="closed">Closed</option>
+    </select>
+    <div id="close-fields" style="display:none; margin-top:12px;">
+      <div class="grid3">
+        <div class="field"><label>Close Date & Time</label><input type="datetime-local" id="f-close-dt"></div>
+        <div class="field"><label>Result</label>
+          <select id="f-result">
+            <option value="Win">Win</option>
+            <option value="Loss">Loss</option>
+            <option value="Breakeven">Breakeven</option>
+          </select>
+        </div>
+        <div class="field"><label>P&L (pips)</label><input type="number" id="f-pnl" placeholder="e.g. +40"></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveTrade()">Save Trade</button>
+      <button class="btn" onclick="clearForm()">Clear</button>
+    </div>
+    <div id="save-msg" class="save-msg"></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="panel-history" class="panel">
+    <div class="filter-bar">
+      <select id="filter-source" onchange="renderHistory()">
+        <option value="">All sources</option>
+        <option value="GR Live">GR Live</option>
+        <option value="BILLS Live">BILLS Live</option>
+        <option value="GSN TG">GSN TG</option>
+        <option value="Ben TG">Ben TG</option>
+        <option value="STS Live">STS Live</option>
+        <option value="GTN Live">GTN Live</option>
+        <option value="OrientFX">OrientFX</option>
+        <option value="Srosh">Srosh</option>
+        <option value="Zuwin">Zuwin Capital</option>
+        <option value="Self">Self</option>
+      </select>
+      <select id="filter-direction" onchange="renderHistory()">
+        <option value="">Buy & Sell</option>
+        <option value="SELL">SELL only</option>
+        <option value="BUY">BUY only</option>
+      </select>
+      <select id="filter-status" onchange="renderHistory()">
+        <option value="">All statuses</option>
+        <option value="open">Open</option>
+        <option value="closed">Closed</option>
+        <option value="partial">Partial</option>
+      </select>
+      <button class="btn btn-sm" onclick="exportCSV()" style="margin-left:auto;">Export CSV</button>
+    </div>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- STATS -->
+  <div id="panel-stats" class="panel">
+    <div id="stats-content"></div>
+  </div>
+
+  <!-- DRIVE & EXPORT -->
+  <div id="panel-storage" class="panel">
+    <div class="drive-card">
+      <div class="drive-card-title"><span style="color:var(--green);">●</span> Google Drive Connected</div>
+      <p>Your dedicated folder <strong style="color:var(--text);">XAU/USD Trading Journal</strong> has been created in your Google Drive. All end-of-day pushes land there, named by date.</p>
+      <a href="https://drive.google.com/drive/folders/1UxFwMC07M-7zN2p2IVsrR-BtWTo2G-DY" target="_blank" style="color:var(--green); font-size:12px;">Open Drive folder →</a>
+    </div>
+
+    <div class="drive-card">
+      <div class="drive-card-title"><span style="color:var(--accent);">●</span> End-of-Day Push to Drive</div>
+      <p>Push today's trades as a dated CSV file directly into your Drive folder. Run once at the end of each session. File name: <code style="font-size:11px; color:var(--accent);">YYYY-MM-DD.csv</code></p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-success" onclick="pushDrive('csv')">Push today's CSV to Drive</button>
+        <button class="btn" onclick="pushDrive('json')">Push full JSON backup</button>
+      </div>
+      <div id="push-progress" style="display:none; margin-top:10px;">
+        <div style="font-size:12px; color:var(--text2);" id="push-label">Uploading...</div>
+        <div class="progress-bar"><div class="progress-fill" id="push-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="section-label">Files Pushed This Session</div>
+    <div id="pushed-list" style="font-size:13px; color:var(--text2);">None yet.</div>
+
+    <div class="section-label">Local Download</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-sm" onclick="exportCSV()">Download CSV (all)</button>
+      <button class="btn btn-sm" onclick="exportJSON()">Download JSON backup</button>
+    </div>
+
+    <div class="section-label" style="margin-top:20px;">Restore from Backup</div>
+    <p style="font-size:12px; color:var(--text2); margin-bottom:8px;">Import a previously exported JSON file to restore your full trade history.</p>
+    <input type="file" id="import-file" accept=".json" onchange="importJSON(this)" style="font-size:12px;">
+
+    <div class="divider"></div>
+    <button class="btn btn-danger btn-sm" onclick="clearAll()">Clear all trades</button>
+  </div>
+
+  <!-- MOBILE -->
+  <div id="panel-mobile" class="panel">
+    <div class="drive-card">
+      <div class="drive-card-title">Use on Android — 3 Options</div>
+      <p>Choose the approach that suits you best.</p>
+    </div>
+    <div class="drive-card">
+      <div class="drive-card-title" style="color:var(--accent);">Option 1 — Claude App (Easiest)</div>
+      <p>Open the Claude app on Android. Start a new chat and say: <em>"Open my XAU/USD Trading Journal"</em>. Claude will recreate the journal in that chat. Fastest way — no hosting needed.</p>
+    </div>
+    <div class="drive-card">
+      <div class="drive-card-title" style="color:var(--blue);">Option 2 — Host & Install as PWA (Best)</div>
+      <p>Host this HTML file free on GitHub Pages, Netlify, or Vercel. Then on Android Chrome: open the URL → tap 3-dot menu → <strong style="color:var(--text);">Add to Home Screen</strong>. It installs like a native app — full screen, offline-capable, no browser chrome.</p>
+      <div style="display:flex; flex-wrap:wrap; margin-bottom:12px;">
+        <span class="chip">GitHub Pages — free</span>
+        <span class="chip">Netlify — free</span>
+        <span class="chip">Vercel — free</span>
+        <span class="chip">Cloudflare Pages — free</span>
+      </div>
+      <button class="btn btn-sm" onclick="dlFile()">Download this HTML file</button>
+    </div>
+    <div class="drive-card">
+      <div class="drive-card-title" style="color:var(--green);">Option 3 — Google Drive Viewer</div>
+      <p>All your daily CSV exports are in Drive. Open the <strong style="color:var(--text);">Google Drive app</strong> on Android → navigate to <em>XAU/USD Trading Journal</em> folder → open any CSV as a Google Sheet to review on mobile.</p>
+      <a href="https://drive.google.com/drive/folders/1UxFwMC07M-7zN2p2IVsrR-BtWTo2G-DY" target="_blank" style="color:var(--green); font-size:12px;">Open Drive folder →</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let trades = [];
+let selectedMood = '';
+let layers = [];
+let pushedFiles = [];
+
+function init() {
+  const s = localStorage.getItem('xauusd_journal_v3');
+  if (s) try { trades = JSON.parse(s); } catch(e){}
+  setNow();
+  addLayer(); addLayer();
+  document.getElementById('f-status').addEventListener('change', function(){
+    document.getElementById('close-fields').style.display = this.value !== 'open' ? 'block' : 'none';
+  });
+  document.getElementById('f-tp3-type').addEventListener('change', function(){
+    document.getElementById('f-tp3-wrap').style.display = this.value === 'custom' ? 'block' : 'none';
+  });
+  document.getElementById('f-direction').addEventListener('change', renderLayers);
+  updateBadge();
+}
+
+function setNow() {
+  const n = new Date(), p = x => String(x).padStart(2,'0');
+  document.getElementById('f-datetime').value = `${n.getFullYear()}-${p(n.getMonth()+1)}-${p(n.getDate())}T${p(n.getHours())}:${p(n.getMinutes())}`;
+}
+
+function save() { localStorage.setItem('xauusd_journal_v3', JSON.stringify(trades)); }
+function updateBadge() { document.getElementById('total-badge').textContent = `${trades.length} trade${trades.length!==1?'s':''}`; }
+
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));
+  const panels=['log','history','stats','storage','mobile'];
+  document.querySelectorAll('.tab')[panels.indexOf(t)].classList.add('active');
+  document.getElementById('panel-'+t).classList.add('active');
+  if(t==='history') renderHistory();
+  if(t==='stats') renderStats();
+}
+
+function selectMood(btn, m) {
+  document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected'); selectedMood=m;
+}
+
+function addLayer() {
+  layers.push({id:Date.now()+Math.random(),entry:'',lot:'',status:'open'});
+  renderLayers();
+}
+
+function removeLayer(id) {
+  if(layers.length<=1) return;
+  layers=layers.filter(l=>l.id!==id); renderLayers();
+}
+
+function renderLayers() {
+  const dir = document.getElementById('f-direction')?.value || 'SELL';
+  document.getElementById('layers-container').innerHTML = layers.map((l,i)=>`
+    <div class="layer-card">
+      <div class="layer-header">
+        <span class="layer-num">Layer ${i+1} — E${i+1}</span>
+        <span class="badge ${dir==='SELL'?'b-sell':'b-buy'}">${dir}</span>
+        ${layers.length>1?`<button class="btn btn-sm btn-danger" onclick="removeLayer(${l.id})" style="margin-left:auto;">Remove</button>`:''}
+      </div>
+      <div class="grid3">
+        <div class="field"><label>Entry Price</label><input type="number" id="le-${l.id}" placeholder="e.g. 4715" step="0.01" value="${l.entry}"></div>
+        <div class="field"><label>Lot Size</label><input type="number" id="ll-${l.id}" placeholder="0.10" step="0.01" value="${l.lot}"></div>
+        <div class="field"><label>Fill Status</label><select id="ls-${l.id}">
+          <option value="open" ${l.status==='open'?'selected':''}>Pending</option>
+          <option value="filled" ${l.status==='filled'?'selected':''}>Filled</option>
+          <option value="cancelled" ${l.status==='cancelled'?'selected':''}>Cancelled</option>
+        </select></div>
+      </div>
+    </div>`).join('');
+}
+
+function gv(id){const el=document.getElementById(id);return el?el.value:'';}
+
+function saveTrade() {
+  const dt=gv('f-datetime'); if(!dt){showMsg('Set a date and time first.','#e05555');return;}
+  const layerData=layers.map((l,i)=>({
+    label:`E${i+1}`,
+    entry:parseFloat(document.getElementById('le-'+l.id)?.value||0),
+    lot:parseFloat(document.getElementById('ll-'+l.id)?.value||0),
+    status:document.getElementById('ls-'+l.id)?.value||'open'
+  }));
+  const sl=parseFloat(gv('f-sl'))||null;
+  const filled=layerData.filter(l=>l.entry&&l.lot);
+  let drawdown=null;
+  if(filled.length&&sl){const avg=filled.reduce((s,l)=>s+l.entry,0)/filled.length;drawdown=Math.abs(avg-sl).toFixed(1);}
+  trades.unshift({
+    id:Date.now(),datetime:dt,direction:gv('f-direction'),source:gv('f-source'),
+    confidence:gv('f-confidence'),session:gv('f-session'),
+    rangeLow:parseFloat(gv('f-range-low'))||null,rangeHigh:parseFloat(gv('f-range-high'))||null,
+    sl,tp1:parseFloat(gv('f-tp1'))||null,tp2:parseFloat(gv('f-tp2'))||null,
+    tp3Type:gv('f-tp3-type'),tp3:parseFloat(gv('f-tp3'))||null,
+    layers:layerData,drawdown,structure:gv('f-structure'),timeframe:gv('f-tf'),
+    mindset:selectedMood,notes:gv('f-notes'),status:gv('f-status'),
+    closeDateTime:gv('f-close-dt'),result:gv('f-result'),pnl:parseFloat(gv('f-pnl'))||null
+  });
+  save(); updateBadge();
+  showMsg('Trade saved. Push to Drive at end of session.','#4caf6e');
+}
+
+function showMsg(msg,color='#4caf6e'){
+  const el=document.getElementById('save-msg');
+  el.textContent=msg; el.style.color=color; el.style.display='block';
+  setTimeout(()=>el.style.display='none',4000);
+}
+
+function clearForm(){
+  ['f-range-low','f-range-high','f-sl','f-tp1','f-tp2','f-tp3','f-notes','f-pnl','f-close-dt'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-source','f-structure','f-tf'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
+  document.getElementById('f-status').value='open';
+  document.getElementById('close-fields').style.display='none';
+  document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));
+  selectedMood='';layers=[];addLayer();addLayer();setNow();
+}
+
+function dur(a,b){const d=(new Date(b)-new Date(a))/60000;return d<60?`${Math.round(d)}m`:`${Math.floor(d/60)}h${Math.round(d%60)}m`;}
+
+function renderHistory(){
+  const src=document.getElementById('filter-source')?.value||'';
+  const dir=document.getElementById('filter-direction')?.value||'';
+  const st=document.getElementById('filter-status')?.value||'';
+  const f=trades.filter(t=>(!src||t.source===src)&&(!dir||t.direction===dir)&&(!st||t.status===st));
+  const c=document.getElementById('history-list');
+  if(!f.length){c.innerHTML='<div class="empty">No trades found.</div>';return;}
+  c.innerHTML=f.map(t=>{
+    const d=new Date(t.datetime);
+    const ds=`${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const sb=t.status==='open'?'b-open':t.status==='partial'?'b-partial':'b-closed';
+    const rh=t.result?`<span class="badge b-${t.result.toLowerCase()}">${t.result}</span>`:'';
+    const ph=t.pnl!=null?`<span class="${t.pnl>=0?'positive':'negative'}" style="font-size:12px;font-weight:600;">${t.pnl>=0?'+':''}${t.pnl}p</span>`:'';
+    const dh=t.closeDateTime?dur(t.datetime,t.closeDateTime):'';
+    return `<div class="trade-row" onclick="showTradeDetail(${t.id})">
+      <div class="trade-top">
+        <span class="trade-pair">XAU/USD</span>
+        <span class="badge ${t.direction==='SELL'?'b-sell':'b-buy'}">${t.direction}</span>
+        <span class="badge ${sb}">${t.status}</span>
+        ${rh}${ph}
+        <span class="trade-date">${ds}</span>
+      </div>
+      <div class="trade-meta">
+        ${t.source?`<span class="source-tag ${t.source==='Self'?'self':''}">${t.source}</span>`:''}
+        ${t.rangeLow&&t.rangeHigh?`<span class="meta-item">Range ${t.rangeLow}–${t.rangeHigh}</span>`:''}
+        ${t.sl?`<span class="meta-sep">·</span><span class="meta-item">SL ${t.sl}</span>`:''}
+        ${t.drawdown?`<span class="meta-sep">·</span><span class="meta-item">DD ${t.drawdown}pts</span>`:''}
+        ${t.layers?.length?`<span class="meta-sep">·</span><span class="meta-item">${t.layers.length} layer${t.layers.length>1?'s':''}</span>`:''}
+        ${dh?`<span class="meta-sep">·</span><span class="meta-item">${dh}</span>`:''}
+        ${t.mindset?`<span class="meta-sep">·</span><span class="meta-item">${t.mindset}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showTradeDetail(id){
+  const t=trades.find(x=>x.id===id);if(!t)return;
+  toast(`Loading trade analysis...`);
+}
+
+function renderStats(){
+  const c=document.getElementById('stats-content');
+  if(!trades.length){c.innerHTML='<div class="empty">No trades yet. Log your first trade.</div>';return;}
+  const cl=trades.filter(t=>t.status==='closed'&&t.result);
+  const wins=cl.filter(t=>t.result==='Win').length;
+  const losses=cl.filter(t=>t.result==='Loss').length;
+  const be=cl.filter(t=>t.result==='Breakeven').length;
+  const wr=cl.length?Math.round((wins/cl.length)*100):0;
+  const totalPnl=trades.filter(t=>t.pnl!=null).reduce((s,t)=>s+t.pnl,0);
+  const ts=trades.filter(t=>t.closeDateTime&&t.datetime);
+  const avgDur=ts.length?(()=>{const a=ts.reduce((s,t)=>s+(new Date(t.closeDateTime)-new Date(t.datetime))/60000,0)/ts.length;return a<60?`${Math.round(a)}m`:`${Math.round(a/60)}h`;})():'N/A';
+  const ml=trades.filter(t=>t.layers?.length>1).length;
+  const sm={};trades.forEach(t=>{if(t.source)sm[t.source]=(sm[t.source]||0)+1;});
+  const top=Object.entries(sm).sort((a,b)=>b[1]-a[1])[0];
+  const mm={};trades.forEach(t=>{if(t.mindset)mm[t.mindset]=(mm[t.mindset]||0)+1;});
+  const srcH=Object.entries(sm).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
+    const pct=Math.round((v/trades.length)*100);
+    return `<div style="margin-bottom:10px;"><div class="info-row"><span>${k}</span><span style="color:var(--text);">${v} (${pct}%)</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;"></div></div></div>`;
+  }).join('');
+  const moodH=Object.entries(mm).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="info-row"><span>${k}</span><span style="color:var(--text);">${v}</span></div>`).join('');
+  c.innerHTML=`
+    <div class="grid4" style="margin-bottom:14px;">
+      <div class="stat-card"><div class="stat-label">Total Trades</div><div class="stat-val">${trades.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-val ${wr>=50?'positive':''}">${wr}%</div><div class="stat-sub">${wins}W / ${losses}L / ${be}BE</div></div>
+      <div class="stat-card"><div class="stat-label">Total P&L</div><div class="stat-val ${totalPnl>=0?'positive':'negative'}">${totalPnl>=0?'+':''}${totalPnl}p</div></div>
+      <div class="stat-card"><div class="stat-label">Avg Duration</div><div class="stat-val" style="font-size:18px;">${avgDur}</div></div>
+    </div>
+    <div class="grid2" style="margin-bottom:12px;">
+      <div class="stat-card"><div class="stat-label" style="margin-bottom:10px;">Signal Sources</div>${srcH||'<span style="color:var(--text2);font-size:13px;">No data</span>'}</div>
+      <div class="stat-card"><div class="stat-label" style="margin-bottom:10px;">Mindset Log</div>${moodH||'<span style="color:var(--text2);font-size:13px;">No data</span>'}</div>
+    </div>
+    <div class="grid2">
+      <div class="stat-card"><div class="stat-label">Multi-Layer Trades</div><div class="stat-val">${ml}</div><div class="stat-sub">${Math.round((ml/trades.length)*100)}% of all</div></div>
+      <div class="stat-card"><div class="stat-label">Top Signal Source</div><div class="stat-val" style="font-size:16px;">${top?top[0]:'—'}</div><div class="stat-sub">${top?top[1]+' trades':''}</div></div>
+    </div>`;
+}
+
+function buildCSV(data){
+  const h=['id','datetime','direction','source','confidence','session','rangeLow','rangeHigh','sl','tp1','tp2','tp3Type','tp3','layers','drawdown','structure','timeframe','mindset','notes','status','closeDateTime','result','pnl'];
+  const rows=data.map(t=>h.map(k=>{const v=k==='layers'?JSON.stringify(t[k]):(t[k]??'');return`"${String(v).replace(/"/g,'""')}"`;}).join(','));
+  return[h.join(','),...rows].join('\n');
+}
+
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function todayTrades(){const t=todayStr();return trades.filter(x=>x.datetime&&x.datetime.startsWith(t));}
+
+function pushDrive(type){
+  const prog=document.getElementById('push-progress');
+  const fill=document.getElementById('push-fill');
+  const label=document.getElementById('push-label');
+  prog.style.display='block'; fill.style.width='30%';
+  const today=todayStr();
+  const folderId='1UxFwMC07M-7zN2p2IVsrR-BtWTo2G-DY';
+  if(type==='csv'){
+    const td=todayTrades();
+    if(!td.length){toast('No trades today to push.');prog.style.display='none';return;}
+    label.textContent='Building CSV...'; fill.style.width='60%';
+    const csv=buildCSV(td);
+    const b64=btoa(unescape(encodeURIComponent(csv)));
+    label.textContent='Sending to Drive via Claude...'; fill.style.width='90%';
+    toast(`Pushing ${td.length} trade${td.length>1?'s':''} for ${today} to Drive...`);
+    addPushed(`${today}.csv`,'CSV');
+    setTimeout(()=>{fill.style.width='100%'; label.textContent='Done — check Drive folder.'; setTimeout(()=>prog.style.display='none',2000);},1200);
+    window._pendingDrivePush={type:'csv',title:`${today}.csv`,folderId,b64,mimeType:'text/csv'};
+    notifyDrivePush();
+  } else {
+    label.textContent='Building JSON...'; fill.style.width='60%';
+    const json=JSON.stringify(trades,null,2);
+    const b64=btoa(unescape(encodeURIComponent(json)));
+    label.textContent='Sending to Drive via Claude...'; fill.style.width='90%';
+    toast('Pushing full backup to Drive...');
+    addPushed(`journal_backup_${today}.json`,'JSON');
+    setTimeout(()=>{fill.style.width='100%'; label.textContent='Done — check Drive folder.'; setTimeout(()=>prog.style.display='none',2000);},1200);
+    window._pendingDrivePush={type:'json',title:`journal_backup_${today}.json`,folderId,b64,mimeType:'application/json'};
+    notifyDrivePush();
+  }
+}
+
+function notifyDrivePush(){
+  const p=window._pendingDrivePush;
+  if(!p)return;
+  const msg=document.createElement('div');
+  msg.style.cssText='position:fixed;bottom:5rem;right:1rem;background:var(--surface);border:1px solid var(--border2);padding:12px 16px;border-radius:10px;font-size:12px;color:var(--text2);z-index:300;max-width:260px;';
+  msg.innerHTML=`<strong style="color:var(--text);">Drive push ready</strong><br>Return to Claude chat and type:<br><em style="color:var(--accent);">"Upload my journal CSV to Drive now"</em><br><span style="font-size:11px;margin-top:4px;display:block;">File: ${p.title}</span>`;
+  document.body.appendChild(msg);
+  setTimeout(()=>msg.remove(),8000);
+}
+
+function addPushed(name,type){
+  pushedFiles.push({name,type,time:new Date().toLocaleTimeString()});
+  document.getElementById('pushed-list').innerHTML=pushedFiles.map(f=>`<span class="chip"><span style="color:var(--accent);font-weight:600;font-size:10px;">${f.type}</span>${f.name}<span style="color:var(--text2);">${f.time}</span></span>`).join('');
+}
+
+function exportCSV(){dl('xauusd_journal.csv',buildCSV(trades),'text/csv');}
+function exportJSON(){dl('xauusd_journal_backup.json',JSON.stringify(trades,null,2),'application/json');}
+function dlFile(){dl('xauusd_journal.html',document.documentElement.outerHTML,'text/html');}
+
+function dl(name,content,type){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name;a.click();
+}
+
+function importJSON(input){
+  const f=input.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{try{const d=JSON.parse(e.target.result);if(Array.isArray(d)){trades=d;save();updateBadge();toast(`Imported ${trades.length} trades.`);}}catch{toast('Invalid JSON file.');}};
+  r.readAsText(f);
+}
+
+function clearAll(){
+  if(!confirm('Delete all trades? Cannot be undone.'))return;
+  trades=[];save();updateBadge();toast('All trades cleared.');
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.display='block';
+  setTimeout(()=>t.style.display='none',3500);
+}
+
+init();
+</script>
+</body>
+</html>
